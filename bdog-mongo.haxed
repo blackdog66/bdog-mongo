@@ -1,0 +1,30 @@
+
+
+---
+project:
+    website:            http://blackdog66.wordpress.com
+    version:            0.1
+    comments:           first
+    description:        MongoDB for Node.js
+    author:             blackdog
+    author-email:       blackdog66@gmail.com
+    tags:               node.js mongo
+    license:            GPL
+    depends:            nodejs
+        
+---
+
+pack:
+        include:        ./
+
+---
+
+build:
+        name:           test
+        target:         js
+        target-file:    test.js
+        class-path:     ./
+                        /home/blackdog/Projects/hx/node
+                        /home/blackdog/Projects/hx/core
+        main-class:     Test
+        options:        -D nodejs
