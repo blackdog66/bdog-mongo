@@ -1,0 +1,141 @@
+
+This is a _in progress_ version of a haxe wrapper for ChrisKv's javascript impl at
+
+http://github.com/christkv/node-mongodb-native
+
+To use, place ChrisKv's work in, e.g. .node_libraries, .node_libraries/mongodb
+
+I've only implemented what I need, and I haven't been very faithful to the underlying driver as I wanted to implement some simple serialization for haxe objects and also have static typing on objects. 
+
+Here's an example of usage so far, you'll also need my bdog library for the serialization.
+
+Given ...
+
+package bdog.accounts ;
+
+using Lambda;
+
+class Persist implements haxe.rtti.Infos {
+  public function new() {}
+}
+
+
+enum AccountType {
+  REAL;
+  FREE;
+}
+
+enum TxnClass {
+  DB;
+  CR;
+}
+
+enum Txn {
+  CARD(v:Float);
+  WIN(v:Float);
+  JACKPOT(v:Float);
+  INITIAL(v:Float);
+}
+
+enum AccStatus {
+  OK;
+  BAD;
+}
+
+class Session extends Persist {
+  public var _id:String;
+  public var sessionID:String;
+  public var userID:String;
+  public var loggedOn:String;
+  public var loggedOff:String;
+  public var ipAddress:String;
+  public var role:Role;
+}
+
+class Account extends Persist  {
+  public var _id:String;
+  public var type:AccountType;
+  public var site:String;
+  public var balance:Float;
+  public var currency:String;
+  public var status:AccStatus;
+  public var lastTransOn:String;
+}
+
+class User extends Persist {
+  public var _id:String;
+  public var firstname:String;
+  public var lastname:String;
+  public var email:String;
+  public var password:String;
+  public var signupOn:String;
+  public var site:String;
+  public var role:Role;
+  public var handle:String;
+  public var accounts:Array<Account>;
+  public var updatedBy:String;
+}
+
+class Ledger extends Persist  {
+  public var _id:String;
+  public var userID:String;
+  public var accountType:AccountType;
+  public var tvalue:Float;
+  public var newBalance:Float;
+  public var summary:String;
+  public var addedOn:String;
+  public var addedBy:String;
+  public var transType:String;
+}
+
+
+then this works ...
+
+
+  public static function
+  signUp(email:String,password:String,
+         first:String,last:String,handle:String,
+         role:Role,site:String,
+         ip:String,fn:{uuid:String,user:User}->Void) {
+
+    var
+      db = new MongoPool('localhost',27017,'accounts',10),
+      users = db.col(User);
+        
+    users.findOne({email:email,password:password},function(user) {
+        if (user == null) {
+          var
+            entryDate = Date.now().toString(),
+            u = new User();
+          
+          u.email=email;
+          u.password=password;
+          u.firstname=first;
+          u.lastname=last;
+          u.handle="temp";
+          u.role=role;
+          u.site=site;
+          u.signupOn = entryDate;
+          u.accounts = accTemplates; // should be a copy?
+          u.updatedBy = null;
+          
+          users.insert(u,function(newUser:User) {
+              newSession(db,newUser,ip,function(uuid) {
+                  var trns = initialTrans(u,entryDate,MongoDB.ID(newUser));
+                  var ledgers = db.col(Ledger);
+                  ledgers.insertMany(trns,function(d) {
+                      trace("closing for "+email);
+                      db.close();
+                      fn({uuid:uuid,user:newUser});
+                    });
+                });
+            });
+        } else {
+          db.close();
+          fn({uuid:null,user:user});
+        }
+      });
+  }
+
+
+
