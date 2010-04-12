@@ -41,8 +41,8 @@ class NativeCollection<T> implements Collection<T> {
   }
 
   public inline function
-  remove(query:MongoObj) {
-    col.remove(query);
+  remove(query:MongoObj,?options) {
+    col.remove(MongoDB.parse(query),options);
   }
 
   public inline function
@@ -50,18 +50,22 @@ class NativeCollection<T> implements Collection<T> {
     col.drop(fn);
   }
 
-  public inline function
-  update(query:MongoQuery,d:T,options:Dynamic,fn:MongoErr->T->Void) {
-    col.update(query,d,options,fn);
+  public function
+  update(query:MongoQuery,d:Dynamic,options:Dynamic,fn:MongoErr->T->Void) {
+    var z = if (Std.is(d,String)) {
+      d = "dummy = "+d;
+      untyped __js__("eval(d)");
+    } else
+      d;
+    
+    col.update(MongoDB.parse(query),z,options,fn);
   }
-
 }
 
 class MongoNative extends MongoDB {
   
   public function new(p:MongoPool) {
     super(p);
-    if (db == null) trace("pool exhausted");
   }
 
   override function
@@ -78,11 +82,6 @@ class MongoNative extends MongoDB {
   }
   
   override function
-  close() {
-    pool.returnConnection(db);
-  }
-  
-  override function
   collection<T>(name:String,fn:MongoErr->Collection<T>->Void) {
     db.collection(name,function(err,col) {
         fn(err,new NativeCollection(col));
@@ -93,6 +92,13 @@ class MongoNative extends MongoDB {
   createCollection<T>(name:String,fn:MongoErr->Collection<T>->Void) {
     db.createCollection(name,function(err,col) {
         fn(err,new NativeCollection(col));
+      });
+  }
+
+  override function
+  lastStatus(fn:Dynamic->Dynamic->Void) {
+    db.lastStatus(function(x,y) {
+        fn(x,y);
       });
   }
      
