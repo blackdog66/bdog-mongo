@@ -5,15 +5,13 @@ http://github.com/christkv/node-mongodb-native
 
 To use, place ChrisKv's work in, e.g. .node_libraries, .node_libraries/mongodb
 
-I've only implemented what I need, and I haven't been very faithful to the underlying driver as I wanted to implement some simple serialization for haxe objects and also have static typing on objects. 
+I've only implemented what I need, and I haven't been very faithful to the underlying driver as I wanted to implement some simple serialization for haxe objects and also have static typing on objects. I'm not happy with the internals but the API as shown below is ok. 
 
-Here's an example of usage so far, you'll also need my bdog library for the serialization.
+My serialization stuff is meant to provide a means to get a simple typed object into the db or over the wire as json in a human recognisable and queryable form, and reconstruct it from that simple form. So haxe serialization is not used as it can not be queried. haxe.rtti is used to reconstruct the object to it's original class, thereby not requiring to insert meta data into mongo.
+
+Here's an example of usage so far, you'll also need my bdog,http://github.com/blackdog66/bdog, library for Serialize.hx.
 
 Given ...
-
-package bdog.accounts ;
-
-using Lambda;
 
 class Persist implements haxe.rtti.Infos {
   public function new() {}
@@ -139,3 +137,4 @@ then this works ...
 
 
 
+3
